@@ -36,29 +36,29 @@ func (t *Task) print() {
 //-------------------------------------------------------------------------------------
 
 type List struct {
-	s []Task
+	items []Task
 }
 
 func (l *List) appendTask(t Task) {
-	if len(l.s) >= cap(l.s) {
+	if len(l.items) >= cap(l.items) {
 		fmt.Printf("Max amount of Tasks reached (%d). Please remove some Task to add more", capacity)
 	}
-	l.s = append(l.s, t)
+	l.items = append(l.items, t)
 }
 
 func (l *List) markAsDone(n int) {
-	// before calling this func check if 0 <= n && n < len(l.s)
-	if 0 < n && len(l.s) < n {
-		fmt.Printf("len of l.s %d\n", len(l.s))
+	// check n is positive AND enough room in l 
+	if 0 < n && len(l.items) < n {
+		fmt.Printf("len of l.items %d\n", len(l.items))
 		fmt.Printf("Given index %d outside range of todolist\n", n)
 		return
 	}
-	l.s[n].status = true
+	l.items[n].status = true
 	fmt.Println("status changed")
 }
 
 func (l *List) printTasks() {
-	for idx, task := range l.s {
+	for idx, task := range l.items {
 		fmt.Printf("%d.  ", idx+1)
 		task.print()
 	}
@@ -72,16 +72,14 @@ func check(e error) {
 	}
 }
 
-func loadData(l *List) {
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
-	check(err)
-	defer file.Close()
-
+func loadData(l *List, file *os.File) {
 	// get file size in bytes and allocate buffer
 	finfo, err := file.Stat()
 	check(err)
+	
+	fmt.Println(finfo.Size())
 	if finfo.Size() == 0 {
-		fmt.Print("File Size is 0")
+		fmt.Println(finfo.Size())
 	}
 	buffer := make([]byte, finfo.Size())
 
@@ -113,16 +111,21 @@ func loadData(l *List) {
 	}
 }
 
-func saveData(l *List) {
-	return
+func saveData(l *List, file *os.File) {
+	file.WriteString("Content;Notes;x\n")
 }
 
 func main() {
-	// underlying array
+	// Open File os.O_APPEND|
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, 0666)
+
+	check(err)
+	defer file.Close()
+
+	// Task Storage
 	task_array := [capacity]Task{}
-	// create a slice of array
-	task_list := List{s: task_array[:0]}
-	loadData(&task_list)
+	task_list := List{items: task_array[:0]}
+	loadData(&task_list, file)
 
 	// Main Loop
 	var flag bool = true
@@ -132,7 +135,10 @@ func main() {
 		task_list.printTasks()
 
 		fmt.Println()
-		fmt.Print("(1) Add Task; (2) Mark as Done; (3) Remove Task; (0) Exit")
+		fmt.Print("(1) Add Task; ")
+		fmt.Print("(2) Mark as Done; ")
+		fmt.Print("(3) Remove Task; ")
+		fmt.Print("(0) Exit\n")
 		fmt.Print(": ")
 
 		var selection int
@@ -147,6 +153,8 @@ func main() {
 
 		case 0:
 			fmt.Println("Exiting...")
+			saveData(&task_list, file)
+			return
 		case 1:
 			fmt.Println("Adding task...")
 		case 2:
