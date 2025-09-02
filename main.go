@@ -21,16 +21,24 @@ type Task struct {
 }
 
 func (t *Task) print() {
-	var char_status rune
-	if !t.status {
-		//Unicode Character “✗” (U+2717)
-		char_status = '✗'
-	} else {
-		//Unicode Character “✓” (U+2713)
-		char_status = '✓'
-	}
+	fmt.Printf("%s\t%c\n", t.content, t.getStatusSymbol())
+}
 
-	fmt.Printf("%s\t%c\n", t.content, char_status)
+func (t *Task) getFormattedString() string {
+	return fmt.Sprintf("%s;%s;%c\n", t.content, t.notes, t.getStatusSymbol())
+}
+
+func (t *Task) getStatusSymbol() rune {
+	if t.status {
+		//Unicode Character “✗” (U+2717)
+		//char_status = '✗'
+		return 'o'
+	}
+	//Unicode Character “✓” (U+2713)
+	//char_status = '✓'
+	return 'x'
+
+
 }
 
 //-------------------------------------------------------------------------------------
@@ -46,11 +54,17 @@ func (l *List) appendTask(t Task) {
 	l.items = append(l.items, t)
 }
 
+func (l *List) isIndexValid(n int) bool {
+	if (0 < n && len(l.items) <= n) {
+		return false
+	}
+	return true
+}
+
 func (l *List) markAsDone(n int) {
 	// check n is positive AND enough room in l 
-	if 0 < n && len(l.items) < n {
-		fmt.Printf("len of l.items %d\n", len(l.items))
-		fmt.Printf("Given index %d outside range of todolist\n", n)
+	if !(l.isIndexValid(n)) {
+		fmt.Printf("TThere is no task with index %d", n+1)
 		return
 	}
 	l.items[n].status = true
@@ -58,8 +72,8 @@ func (l *List) markAsDone(n int) {
 }
 
 func (l *List) printTasks() {
-	for idx, task := range l.items {
-		fmt.Printf("%d.  ", idx+1)
+	for i, task := range l.items {
+		fmt.Printf("%d.  ", i+1)
 		task.print()
 	}
 }
@@ -77,10 +91,10 @@ func loadData(l *List, file *os.File) {
 	finfo, err := file.Stat()
 	check(err)
 	
-	fmt.Println(finfo.Size())
 	if finfo.Size() == 0 {
-		fmt.Println(finfo.Size())
+		return
 	}
+
 	buffer := make([]byte, finfo.Size())
 
 	// read file data into buffer
@@ -111,8 +125,15 @@ func loadData(l *List, file *os.File) {
 	}
 }
 
+
+
 func saveData(l *List, file *os.File) {
-	file.WriteString("Content;Notes;x\n")
+	// deletes content of file & and writes TaskList items to file
+	file.Truncate(0)
+	file.Seek(0, 0)
+	for _, task := range l.items {
+		file.WriteString(task.getFormattedString())
+	}
 }
 
 func main() {
