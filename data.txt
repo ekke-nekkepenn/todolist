@@ -1,3 +1,0 @@
-do laundry;use detergent;x
-make a cake;dont use gluten;x
-send letter to white house;not the one in US;o

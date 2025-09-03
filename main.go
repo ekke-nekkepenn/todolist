@@ -1,8 +1,7 @@
 package main
 
 import (
-
-	//"bufio"
+	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -37,8 +36,6 @@ func (t *Task) getStatusSymbol() rune {
 	//Unicode Character “✓” (U+2713)
 	//char_status = '✓'
 	return 'x'
-
-
 }
 
 //-------------------------------------------------------------------------------------
@@ -55,14 +52,14 @@ func (l *List) appendTask(t Task) {
 }
 
 func (l *List) isIndexValid(n int) bool {
-	if (0 < n && len(l.items) <= n) {
+	if 0 < n && len(l.items) <= n {
 		return false
 	}
 	return true
 }
 
 func (l *List) markAsDone(n int) {
-	// check n is positive AND enough room in l 
+	// check n is positive AND enough room in l
 	if !(l.isIndexValid(n)) {
 		fmt.Printf("TThere is no task with index %d", n+1)
 		return
@@ -90,7 +87,7 @@ func loadData(l *List, file *os.File) {
 	// get file size in bytes and allocate buffer
 	finfo, err := file.Stat()
 	check(err)
-	
+
 	if finfo.Size() == 0 {
 		return
 	}
@@ -125,8 +122,6 @@ func loadData(l *List, file *os.File) {
 	}
 }
 
-
-
 func saveData(l *List, file *os.File) {
 	// deletes content of file & and writes TaskList items to file
 	file.Truncate(0)
@@ -136,8 +131,53 @@ func saveData(l *List, file *os.File) {
 	}
 }
 
+func addTask(l *List) {
+	// https://pkg.go.dev/bufio#Scanner
+	// from the examples
+	scanner := bufio.NewScanner(os.Stdin)
+
+	fmt.Print("Task: ")
+	scanner.Scan()
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+	}
+	content := scanner.Text()
+
+	fmt.Print("Notes: ")
+	scanner.Scan()
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+	}
+	notes := scanner.Text()
+
+	l.appendTask(Task{content: content, notes: notes, status: false})
+}
+
+func removeTask(l *List) {
+	l.printTasks()
+
+	var selection int
+	_, err := fmt.Scanf("%d", &selection)
+	check(err)
+	selection--
+
+	if selection < 0 || selection >= len(l.items) {
+		fmt.Printf("%d is not a valid index\n", selection+1)
+	}
+
+	// delete Task
+	l.items[selection] = Task{}
+
+	// close up "hole" in array by copying later task into it
+	for i := selection + 1; i < len(l.items); i++ {
+		l.items[i-1] = l.items[i]
+	}
+
+	// resize the slice
+	l.items = l.items[:len(l.items)-1]
+}
+
 func main() {
-	// Open File os.O_APPEND|
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, 0666)
 
 	check(err)
@@ -151,7 +191,6 @@ func main() {
 	// Main Loop
 	var flag bool = true
 	for flag {
-
 		// Show Task list
 		task_list.printTasks()
 
@@ -178,6 +217,8 @@ func main() {
 			return
 		case 1:
 			fmt.Println("Adding task...")
+			addTask(&task_list)
+
 		case 2:
 			task_list.printTasks()
 			fmt.Print(": ")
@@ -188,12 +229,12 @@ func main() {
 			task_list.markAsDone(selection - 1)
 
 		case 3:
-			fmt.Println("removing task...")
+			fmt.Println("Removing task...")
+			removeTask(&task_list)
+
 		default:
 			fmt.Println("please enter a number from 1-4 or use ctrl-c")
 
 		}
-
 	}
-
 }
